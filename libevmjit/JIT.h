@@ -94,6 +94,7 @@ enum class ReturnCode
 	// Success codes
 	Stop    = 0,
 	Return  = 1,
+	Revert  = 2,
 
 	// Standard error codes
 	OutOfGas           = -1,

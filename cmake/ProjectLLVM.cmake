@@ -8,7 +8,7 @@
 # by find_package(... CONFIG) function.
 #
 # Creates a target representing all required LLVM libraries and include path.
-function(configure_llvm_project TARGET_NAME)
+function(configure_llvm_project)
     if (LLVM_DIR)
         find_package(LLVM REQUIRED CONFIG)
         llvm_map_components_to_libnames(LIBS mcjit ipo x86codegen)
@@ -60,13 +60,12 @@ function(configure_llvm_project TARGET_NAME)
         endif()
 
         include(ExternalProject)
-        ExternalProject_Add(llvm-project
-            PREFIX llvm
-            DOWNLOAD_DIR ${CMAKE_CURRENT_LIST_DIR}/downloads
-            BINARY_DIR llvm  # Build directly to install dir to avoid copy.
-            SOURCE_DIR llvm/src/llvm
+        ExternalProject_Add(llvm
+            PREFIX ${CMAKE_SOURCE_DIR}/deps
             URL http://llvm.org/releases/3.9.1/llvm-3.9.1.src.tar.xz
             URL_HASH SHA256=1fd90354b9cf19232e8f168faf2220e79be555df3aa743242700879e8fd329ee
+            DOWNLOAD_NO_PROGRESS TRUE
+            BINARY_DIR ${CMAKE_SOURCE_DIR}/deps  # Build directly to install dir to avoid copy.
             CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release
                        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                        -DLLVM_ENABLE_TERMINFO=OFF  # Disable terminal color support
@@ -74,12 +73,14 @@ function(configure_llvm_project TARGET_NAME)
                        -DLLVM_TARGETS_TO_BUILD=X86
                        -DLLVM_INCLUDE_TOOLS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF
                        -DLLVM_INCLUDE_TESTS=OFF
+            LOG_CONFIGURE TRUE
             BUILD_COMMAND   ${BUILD_COMMAND}
             INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install
+            LOG_INSTALL TRUE
             EXCLUDE_FROM_ALL TRUE
         )
 
-        ExternalProject_Get_Property(llvm-project INSTALL_DIR)
+        ExternalProject_Get_Property(llvm INSTALL_DIR)
         set(LLVM_LIBRARY_DIRS ${INSTALL_DIR}/lib)
         set(LLVM_INCLUDE_DIRS ${INSTALL_DIR}/include)
         file(MAKE_DIRECTORY ${LLVM_INCLUDE_DIRS})  # Must exists.
@@ -101,12 +102,12 @@ function(configure_llvm_project TARGET_NAME)
     endif()
 
     # Create the target representing
-    add_library(${TARGET_NAME} STATIC IMPORTED)
-    set_property(TARGET ${TARGET_NAME} PROPERTY INTERFACE_COMPILE_DEFINITIONS ${DEFINES})
-    set_property(TARGET ${TARGET_NAME} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLVM_INCLUDE_DIRS})
-    set_property(TARGET ${TARGET_NAME} PROPERTY IMPORTED_LOCATION ${MAIN_LIB})
-    set_property(TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES ${LIBS})
-    if (TARGET llvm-project)
-        add_dependencies(${TARGET_NAME} llvm-project)
+    add_library(LLVM::JIT STATIC IMPORTED)
+    set_property(TARGET LLVM::JIT PROPERTY INTERFACE_COMPILE_DEFINITIONS ${DEFINES})
+    set_property(TARGET LLVM::JIT PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLVM_INCLUDE_DIRS})
+    set_property(TARGET LLVM::JIT PROPERTY IMPORTED_LOCATION ${MAIN_LIB})
+    set_property(TARGET LLVM::JIT PROPERTY INTERFACE_LINK_LIBRARIES ${LIBS})
+    if (TARGET llvm)
+        add_dependencies(LLVM::JIT llvm)
     endif()
 endfunction()
