@@ -28,7 +28,8 @@ llvm::StructType* RuntimeManager::getRuntimeDataType()
 			Type::Size,		// callDataSize
 			Type::Word,		// apparentValue
 			Type::BytePtr,	// code
-			Type::Size,		// codeSize
+            Type::Size,     // codeSize
+            Type::BoolPtr,  // interruptedPtr
 		};
 		type = llvm::StructType::create(elems, "RuntimeData");
 	}
@@ -64,7 +65,8 @@ llvm::Twine getName(RuntimeData::Index _index)
 	case RuntimeData::CallDataSize:	return "msg.data.size";
 	case RuntimeData::ApparentCallValue:	return "msg.value";
 	case RuntimeData::Code:			return "code.ptr";
-	case RuntimeData::CodeSize:		return "code.size";
+    case RuntimeData::CodeSize:     return "code.size";
+    case RuntimeData::InterruptedPtr:       return "interrupted.ptr";
 	}
 }
 }
@@ -219,6 +221,11 @@ llvm::Value* RuntimeManager::getGasPtr()
 {
 	assert(getMainFunction());
 	return m_gasPtr;
+}
+
+llvm::Value* RuntimeManager::getInterruptedPtr()
+{
+    return m_dataElts[RuntimeData::InterruptedPtr];
 }
 
 llvm::Value* RuntimeManager::getMem()

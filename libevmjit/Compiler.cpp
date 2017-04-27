@@ -217,6 +217,9 @@ void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runti
 	m_builder.SetInsertPoint(_basicBlock.llvm());
 	LocalStack stack{m_builder, _runtimeManager};
 
+	// add interruption check for each basic block
+	_gasMeter.addInterruptionCheck();
+
 	for (auto it = _basicBlock.begin(); it != _basicBlock.end(); ++it)
 	{
 		auto inst = Instruction(*it);

@@ -21,7 +21,8 @@ struct Type
 	static llvm::IntegerType* Word;
 	static llvm::PointerType* WordPtr;
 
-	static llvm::IntegerType* Bool;
+    static llvm::IntegerType* Bool;
+    static llvm::PointerType* BoolPtr;
 	static llvm::IntegerType* Size;
 	static llvm::IntegerType* Gas;
 	static llvm::PointerType* GasPtr;

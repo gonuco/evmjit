@@ -14,6 +14,7 @@ namespace jit
 llvm::IntegerType* Type::Word;
 llvm::PointerType* Type::WordPtr;
 llvm::IntegerType* Type::Bool;
+llvm::PointerType* Type::BoolPtr;
 llvm::IntegerType* Type::Size;
 llvm::IntegerType* Type::Gas;
 llvm::PointerType* Type::GasPtr;
@@ -34,6 +35,7 @@ void Type::init(llvm::LLVMContext& _context)
 		Word = llvm::Type::getIntNTy(_context, 256);
 		WordPtr = Word->getPointerTo();
 		Bool = llvm::Type::getInt1Ty(_context);
+		BoolPtr = Bool->getPointerTo();
 		Size = llvm::Type::getInt64Ty(_context);
 		Gas = Size;
 		GasPtr = Gas->getPointerTo();

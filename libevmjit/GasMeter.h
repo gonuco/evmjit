@@ -48,6 +48,9 @@ public:
 	/// Count addional gas cost for memory copy
 	void countCopy(llvm::Value* _copyWords);
 
+	/// Generate code for interruption check
+	void addInterruptionCheck();
+
 private:
 	int64_t getStepCost(Instruction inst) const;
 
@@ -57,6 +60,8 @@ private:
 
 	llvm::CallInst* m_checkCall = nullptr;
 	llvm::Function* m_gasCheckFunc = nullptr;
+
+    llvm::Function* m_interruptionCheckFunc = nullptr;
 
 	RuntimeManager& m_runtimeManager;
 

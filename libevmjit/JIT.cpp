@@ -33,6 +33,7 @@ static_assert(sizeof(evm_update_key) == sizeof(int), "Enum `evm_update_key` is n
 static_assert(sizeof(evm_call_kind)  == sizeof(int), "Enum `evm_call_kind` is not the size of int");
 static_assert(sizeof(evm_mode)       == sizeof(int), "Enum `evm_mode` is not the size of int");
 
+extern bool interrupted;
 
 namespace dev
 {
@@ -309,6 +310,7 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	rt.callData = input;
 	rt.callDataSize = input_size;
 	std::memcpy(&rt.apparentValue, &value, sizeof(value));
+	rt.interruptedPtr = &interrupted;
 
 	ExecutionContext ctx{rt, env};
 

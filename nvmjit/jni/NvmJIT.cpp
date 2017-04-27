@@ -12,6 +12,8 @@
 extern std::stack<dev::evmjit::RuntimeData *> rts;
 
 
+bool interrupted = false;
+
 struct evm_env *env = NULL; // not used
 
 std::stack<struct evm_instance *> instances;
@@ -51,6 +53,8 @@ void createVM(Callback *cb) {
 
     instances.push(instance);
     callbacks.push(cb);
+
+    interrupted = false;
 }
 
 struct evm_result executeCode(enum evm_mode mode, struct evm_uint256be code_hash,
@@ -87,8 +91,6 @@ void releaseVM() {
         callbacks.pop();
     }
 }
-
-bool interrupted = false;
 
 void interrupt() {
     interrupted = true;
