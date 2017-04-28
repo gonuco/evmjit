@@ -86,81 +86,81 @@ void GasMeter::addInterruptionCheck() {
 
 void GasMeter::count(Instruction _inst)
 {
-	if (!m_checkCall)
-	{
-		// Create gas check call with mocked block cost at begining of current cost-block
-		m_checkCall = m_builder.CreateCall(m_gasCheckFunc, {m_runtimeManager.getGasPtr(), llvm::UndefValue::get(Type::Gas), m_runtimeManager.getJmpBuf()});
-	}
-
-	m_blockCost += getStepCost(_inst);
+//	if (!m_checkCall)
+//	{
+//		// Create gas check call with mocked block cost at begining of current cost-block
+//		m_checkCall = m_builder.CreateCall(m_gasCheckFunc, {m_runtimeManager.getGasPtr(), llvm::UndefValue::get(Type::Gas), m_runtimeManager.getJmpBuf()});
+//	}
+//
+//	m_blockCost += getStepCost(_inst);
 }
 
 void GasMeter::count(llvm::Value* _cost, llvm::Value* _jmpBuf, llvm::Value* _gasPtr)
 {
-	if (_cost->getType() == Type::Word)
-	{
-		auto gasMax256 = m_builder.CreateZExt(Constant::gasMax, Type::Word);
-		auto tooHigh = m_builder.CreateICmpUGT(_cost, gasMax256, "costTooHigh");
-		auto cost64 = m_builder.CreateTrunc(_cost, Type::Gas);
-		_cost = m_builder.CreateSelect(tooHigh, Constant::gasMax, cost64, "cost");
-	}
-
-	assert(_cost->getType() == Type::Gas);
-	m_builder.CreateCall(m_gasCheckFunc, {_gasPtr ? _gasPtr : m_runtimeManager.getGasPtr(), _cost, _jmpBuf ? _jmpBuf : m_runtimeManager.getJmpBuf()});
+//	if (_cost->getType() == Type::Word)
+//	{
+//		auto gasMax256 = m_builder.CreateZExt(Constant::gasMax, Type::Word);
+//		auto tooHigh = m_builder.CreateICmpUGT(_cost, gasMax256, "costTooHigh");
+//		auto cost64 = m_builder.CreateTrunc(_cost, Type::Gas);
+//		_cost = m_builder.CreateSelect(tooHigh, Constant::gasMax, cost64, "cost");
+//	}
+//
+//	assert(_cost->getType() == Type::Gas);
+//	m_builder.CreateCall(m_gasCheckFunc, {_gasPtr ? _gasPtr : m_runtimeManager.getGasPtr(), _cost, _jmpBuf ? _jmpBuf : m_runtimeManager.getJmpBuf()});
 }
 
 void GasMeter::countExp(llvm::Value* _exponent)
 {
-	// Additional cost is 1 per significant byte of exponent
-	// lz - leading zeros
-	// cost = ((256 - lz) + 7) / 8
-
-	// OPT: Can gas update be done in exp algorithm?
-	auto ctlz = llvm::Intrinsic::getDeclaration(getModule(), llvm::Intrinsic::ctlz, Type::Word);
-	auto lz256 = m_builder.CreateCall(ctlz, {_exponent, m_builder.getInt1(false)});
-	auto lz = m_builder.CreateTrunc(lz256, Type::Gas, "lz");
-	auto sigBits = m_builder.CreateSub(m_builder.getInt64(256), lz, "sigBits");
-	auto sigBytes = m_builder.CreateUDiv(m_builder.CreateAdd(sigBits, m_builder.getInt64(7)), m_builder.getInt64(8));
-	auto exponentByteCost = m_mode >= EVM_CLEARING ? 50 : JITSchedule::expByteGas::value;
-	count(m_builder.CreateNUWMul(sigBytes, m_builder.getInt64(exponentByteCost)));
+//	// Additional cost is 1 per significant byte of exponent
+//	// lz - leading zeros
+//	// cost = ((256 - lz) + 7) / 8
+//
+//	// OPT: Can gas update be done in exp algorithm?
+//	auto ctlz = llvm::Intrinsic::getDeclaration(getModule(), llvm::Intrinsic::ctlz, Type::Word);
+//	auto lz256 = m_builder.CreateCall(ctlz, {_exponent, m_builder.getInt1(false)});
+//	auto lz = m_builder.CreateTrunc(lz256, Type::Gas, "lz");
+//	auto sigBits = m_builder.CreateSub(m_builder.getInt64(256), lz, "sigBits");
+//	auto sigBytes = m_builder.CreateUDiv(m_builder.CreateAdd(sigBits, m_builder.getInt64(7)), m_builder.getInt64(8));
+//	auto exponentByteCost = m_mode >= EVM_CLEARING ? 50 : JITSchedule::expByteGas::value;
+//	count(m_builder.CreateNUWMul(sigBytes, m_builder.getInt64(exponentByteCost)));
 }
 
 void GasMeter::countSStore(Ext& _ext, llvm::Value* _index, llvm::Value* _newValue)
 {
-	auto oldValue = _ext.sload(_index);
-	auto oldValueIsZero = m_builder.CreateICmpEQ(oldValue, Constant::get(0), "oldValueIsZero");
-	auto newValueIsntZero = m_builder.CreateICmpNE(_newValue, Constant::get(0), "newValueIsntZero");
-	auto isInsert = m_builder.CreateAnd(oldValueIsZero, newValueIsntZero, "isInsert");
-	assert(JITSchedule::sstoreResetGas::value == JITSchedule::sstoreClearGas::value && "Update SSTORE gas cost");
-	auto cost = m_builder.CreateSelect(isInsert, m_builder.getInt64(JITSchedule::sstoreSetGas::value), m_builder.getInt64(JITSchedule::sstoreResetGas::value), "cost");
-	count(cost);
+//	auto oldValue = _ext.sload(_index);
+//	auto oldValueIsZero = m_builder.CreateICmpEQ(oldValue, Constant::get(0), "oldValueIsZero");
+//	auto newValueIsntZero = m_builder.CreateICmpNE(_newValue, Constant::get(0), "newValueIsntZero");
+//	auto isInsert = m_builder.CreateAnd(oldValueIsZero, newValueIsntZero, "isInsert");
+//	assert(JITSchedule::sstoreResetGas::value == JITSchedule::sstoreClearGas::value && "Update SSTORE gas cost");
+//	auto cost = m_builder.CreateSelect(isInsert, m_builder.getInt64(JITSchedule::sstoreSetGas::value), m_builder.getInt64(JITSchedule::sstoreResetGas::value), "cost");
+//	count(cost);
 }
 
 void GasMeter::countLogData(llvm::Value* _dataLength)
 {
-	assert(m_checkCall);
-	assert(m_blockCost > 0); // LOGn instruction is already counted
-	assert(JITSchedule::logDataGas::value != 1 && "Log data gas cost has changed. Update GasMeter.");
-	count(m_builder.CreateNUWMul(_dataLength, Constant::get(JITSchedule::logDataGas::value))); // TODO: Use i64
+//	assert(m_checkCall);
+//	assert(m_blockCost > 0); // LOGn instruction is already counted
+//	assert(JITSchedule::logDataGas::value != 1 && "Log data gas cost has changed. Update GasMeter.");
+//	count(m_builder.CreateNUWMul(_dataLength, Constant::get(JITSchedule::logDataGas::value))); // TODO: Use i64
 }
 
 void GasMeter::countSha3Data(llvm::Value* _dataLength)
 {
-	assert(m_checkCall);
-	assert(m_blockCost > 0); // SHA3 instruction is already counted
-
-	// TODO: This round ups to 32 happens in many places
-	assert(JITSchedule::sha3WordGas::value != 1 && "SHA3 data cost has changed. Update GasMeter");
-	auto dataLength64 = m_builder.CreateTrunc(_dataLength, Type::Gas);
-	auto words64 = m_builder.CreateUDiv(m_builder.CreateNUWAdd(dataLength64, m_builder.getInt64(31)), m_builder.getInt64(32));
-	auto cost64 = m_builder.CreateNUWMul(m_builder.getInt64(JITSchedule::sha3WordGas::value), words64);
-	count(cost64);
+//	assert(m_checkCall);
+//	assert(m_blockCost > 0); // SHA3 instruction is already counted
+//
+//	// TODO: This round ups to 32 happens in many places
+//	assert(JITSchedule::sha3WordGas::value != 1 && "SHA3 data cost has changed. Update GasMeter");
+//	auto dataLength64 = m_builder.CreateTrunc(_dataLength, Type::Gas);
+//	auto words64 = m_builder.CreateUDiv(m_builder.CreateNUWAdd(dataLength64, m_builder.getInt64(31)), m_builder.getInt64(32));
+//	auto cost64 = m_builder.CreateNUWMul(m_builder.getInt64(JITSchedule::sha3WordGas::value), words64);
+//	count(cost64);
 }
 
 void GasMeter::giveBack(llvm::Value* _gas)
 {
-	assert(_gas->getType() == Type::Gas);
-	m_runtimeManager.setGas(m_builder.CreateAdd(m_runtimeManager.getGas(), _gas));
+//	assert(_gas->getType() == Type::Gas);
+//	m_runtimeManager.setGas(m_builder.CreateAdd(m_runtimeManager.getGas(), _gas));
 }
 
 void GasMeter::commitCostBlock()
@@ -184,14 +184,14 @@ void GasMeter::commitCostBlock()
 
 void GasMeter::countMemory(llvm::Value* _additionalMemoryInWords, llvm::Value* _jmpBuf, llvm::Value* _gasPtr)
 {
-	assert(JITSchedule::memoryGas::value != 1 && "Memory gas cost has changed. Update GasMeter.");
-	count(_additionalMemoryInWords, _jmpBuf, _gasPtr);
+//	assert(JITSchedule::memoryGas::value != 1 && "Memory gas cost has changed. Update GasMeter.");
+//	count(_additionalMemoryInWords, _jmpBuf, _gasPtr);
 }
 
 void GasMeter::countCopy(llvm::Value* _copyWords)
 {
-	assert(JITSchedule::copyGas::value != 1 && "Copy gas cost has changed. Update GasMeter.");
-	count(m_builder.CreateNUWMul(_copyWords, m_builder.getInt64(JITSchedule::copyGas::value)));
+//	assert(JITSchedule::copyGas::value != 1 && "Copy gas cost has changed. Update GasMeter.");
+//	count(m_builder.CreateNUWMul(_copyWords, m_builder.getInt64(JITSchedule::copyGas::value)));
 }
 
 int64_t GasMeter::getStepCost(Instruction inst) const
