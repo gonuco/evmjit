@@ -210,7 +210,6 @@ std::unique_ptr<llvm::Module> Compiler::compile(code_iterator _begin, code_itera
 	return module;
 }
 
-
 void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runtimeManager,
 								 Arith256& _arith, Memory& _memory, Ext& _ext, GasMeter& _gasMeter)
 {
@@ -219,6 +218,11 @@ void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runti
 
 	// add interruption check for each basic block
 	_gasMeter.addInterruptionCheck();
+
+	// check interruption during compiling
+	if (interrupted) {
+		return;
+	}
 
 	for (auto it = _basicBlock.begin(); it != _basicBlock.end(); ++it)
 	{

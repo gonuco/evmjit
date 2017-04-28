@@ -33,8 +33,6 @@ static_assert(sizeof(evm_update_key) == sizeof(int), "Enum `evm_update_key` is n
 static_assert(sizeof(evm_call_kind)  == sizeof(int), "Enum `evm_call_kind` is not the size of int");
 static_assert(sizeof(evm_mode)       == sizeof(int), "Enum `evm_mode` is not the size of int");
 
-extern bool interrupted;
-
 namespace dev
 {
 namespace evmjit
@@ -328,6 +326,12 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	if (!execFunc)
 	{
 		execFunc = jit.compile(mode, ctx.code(), ctx.codeSize(), codeIdentifier);
+		if (interrupted) {
+			std::cout << "NvmJIT: interrupted during compiling" << std::endl;
+			result.code = EVM_FAILURE;
+			return result;
+		}
+
 		if (!execFunc)
 			return result;
 		jit.mapExecFunc(codeIdentifier, execFunc);
