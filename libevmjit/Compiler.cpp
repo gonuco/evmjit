@@ -195,8 +195,12 @@ std::unique_ptr<llvm::Module> Compiler::compile(code_iterator _begin, code_itera
 	runtimeManager.setJmpBuf(jmpBuf);
 	m_builder.CreateCondBr(normalFlow, entryBB->getNextNode(), abortBB, Type::expectTrue);
 
-	for (auto& block: blocks)
+	for (auto& block: blocks) {
+		if (interrupted) {
+			break;
+		}
 		compileBasicBlock(block, runtimeManager, arith, memory, ext, gasMeter);
+	}
 
 	// Code for special blocks:
 	m_builder.SetInsertPoint(stopBB);
@@ -218,11 +222,6 @@ void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runti
 
 	// add interruption check for each basic block
 	_gasMeter.addInterruptionCheck();
-
-	// check interruption during compiling
-	if (interrupted) {
-		return;
-	}
 
 	for (auto it = _basicBlock.begin(); it != _basicBlock.end(); ++it)
 	{

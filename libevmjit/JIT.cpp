@@ -240,6 +240,13 @@ ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 
 	m_engine->addModule(std::move(module));
 	//listener->stateChanged(ExecState::CodeGen);
+
+
+	if (interrupted) {
+		return nullptr;
+	}
+
+	// The following call involves code generation and is very time consuming
 	return (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
 }
 
@@ -327,7 +334,6 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	{
 		execFunc = jit.compile(mode, ctx.code(), ctx.codeSize(), codeIdentifier);
 		if (interrupted) {
-			std::cout << "NvmJIT: interrupted during compiling" << std::endl;
 			result.code = EVM_FAILURE;
 			return result;
 		}
