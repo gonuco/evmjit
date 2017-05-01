@@ -32,9 +32,15 @@ public:
 
 void createVM(Callback *cb);
 
-struct evm_result executeCode(enum evm_mode mode, struct evm_uint256be code_hash,
-        uint8_t const* code, size_t code_size, int64_t gas,
-        uint8_t const* input, size_t input_size, struct evm_uint256be value);
+bool isCompiled(enum evm_mode mode, struct evm_uint256be code_hash);
+
+void compileCode(enum evm_mode mode, struct evm_uint256be code_hash,
+        uint8_t const* code, size_t code_size);
+
+struct evm_result executeCode(enum evm_mode mode,
+        struct evm_uint256be code_hash, uint8_t const* code, size_t code_size,
+        int64_t gas, uint8_t const* input, size_t input_size,
+        struct evm_uint256be value);
 
 void releaseResult(struct evm_result const* result);
 

@@ -1050,6 +1050,52 @@ SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_createVM(JNIEnv *jenv, jc
 }
 
 
+SWIGEXPORT jboolean JNICALL Java_com_nuco_nvmjit_NvmJITJNI_isCompiled(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_) {
+  jboolean jresult = 0 ;
+  enum evm_mode arg1 ;
+  evm_uint256be arg2 ;
+  evm_uint256be *argp2 ;
+  bool result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg2_;
+  arg1 = (enum evm_mode)jarg1; 
+  argp2 = *(evm_uint256be **)&jarg2; 
+  if (!argp2) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null evm_uint256be");
+    return 0;
+  }
+  arg2 = *argp2; 
+  result = (bool)isCompiled(arg1,arg2);
+  jresult = (jboolean)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_compileCode(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_, jlong jarg3, jlong jarg4) {
+  enum evm_mode arg1 ;
+  evm_uint256be arg2 ;
+  uint8_t *arg3 = (uint8_t *) 0 ;
+  size_t arg4 ;
+  evm_uint256be *argp2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg2_;
+  arg1 = (enum evm_mode)jarg1; 
+  argp2 = *(evm_uint256be **)&jarg2; 
+  if (!argp2) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null evm_uint256be");
+    return ;
+  }
+  arg2 = *argp2; 
+  arg3 = *(uint8_t **)&jarg3; 
+  arg4 = (size_t)jarg4; 
+  compileCode(arg1,arg2,(unsigned char const *)arg3,arg4);
+}
+
+
 SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_executeCode(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_, jlong jarg3, jlong jarg4, jlong jarg5, jlong jarg6, jlong jarg7, jlong jarg8, jobject jarg8_) {
   jlong jresult = 0 ;
   enum evm_mode arg1 ;

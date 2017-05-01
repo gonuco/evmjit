@@ -5,12 +5,9 @@
  *      Author: yulong
  */
 
-#include <stack>
 #include "NvmJIT.h"
 
-#include "../src/JIT.h"
-extern std::stack<dev::evmjit::RuntimeData *> rts;
-
+#include <stack>
 
 bool interrupted = false;
 
@@ -57,9 +54,32 @@ void createVM(Callback *cb) {
     interrupted = false;
 }
 
-struct evm_result executeCode(enum evm_mode mode, struct evm_uint256be code_hash,
-        uint8_t const* code, size_t code_size, int64_t gas,
-        uint8_t const* input, size_t input_size, struct evm_uint256be value) {
+bool isCompiled(enum evm_mode mode, struct evm_uint256be code_hash) {
+    struct evm_factory factory = evmjit_get_factory();
+    struct evm_instance *instance = factory.create(&doQuery, &doUpdate,
+            &doCall);
+
+    bool result = instance->get_code_status(instance, mode, code_hash)
+            == EVM_READY;
+    instance->destroy(instance);
+
+    return result;
+}
+
+void compileCode(enum evm_mode mode, struct evm_uint256be code_hash,
+        uint8_t const* code, size_t code_size) {
+    struct evm_factory factory = evmjit_get_factory();
+    struct evm_instance *instance = factory.create(&doQuery, &doUpdate,
+            &doCall);
+
+    instance->prepare_code(instance, mode, code_hash, code, code_size);
+    instance->destroy(instance);
+}
+
+struct evm_result executeCode(enum evm_mode mode,
+        struct evm_uint256be code_hash, uint8_t const* code, size_t code_size,
+        int64_t gas, uint8_t const* input, size_t input_size,
+        struct evm_uint256be value) {
     struct evm_result result;
     result.code = EVM_FAILURE;
 
@@ -95,4 +115,3 @@ void releaseVM() {
 void interrupt() {
     interrupted = true;
 }
-
