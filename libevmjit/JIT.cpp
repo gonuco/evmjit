@@ -242,9 +242,9 @@ ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	//listener->stateChanged(ExecState::CodeGen);
 
 
-	if (interrupted) {
-		return nullptr;
-	}
+//	if (interrupted) {
+//		return nullptr;
+//	}
 
 	// The following call involves code generation and is very time consuming
 	return (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
@@ -333,10 +333,10 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	if (!execFunc)
 	{
 		execFunc = jit.compile(mode, ctx.code(), ctx.codeSize(), codeIdentifier);
-		if (interrupted) {
-			result.code = EVM_FAILURE;
-			return result;
-		}
+//		if (interrupted) {
+//			result.code = EVM_FAILURE;
+//			return result;
+//		}
 
 		if (!execFunc)
 			return result;
