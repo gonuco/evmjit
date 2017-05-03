@@ -20,37 +20,37 @@ GasMeter::GasMeter(IRBuilder& _builder, RuntimeManager& _runtimeManager, evm_mod
 	m_runtimeManager(_runtimeManager),
     m_mode(mode)
 {
-	llvm::Type* gasCheckArgs[] = {Type::Gas->getPointerTo(), Type::Gas, Type::BytePtr};
-	m_gasCheckFunc = llvm::Function::Create(llvm::FunctionType::get(Type::Void, gasCheckArgs, false), llvm::Function::PrivateLinkage, "gas.check", getModule());
-	m_gasCheckFunc->setDoesNotThrow();
-	m_gasCheckFunc->setDoesNotCapture(1);
-
-	auto checkBB = llvm::BasicBlock::Create(_builder.getContext(), "Check", m_gasCheckFunc);
-	auto updateBB = llvm::BasicBlock::Create(_builder.getContext(), "Update", m_gasCheckFunc);
-	auto outOfGasBB = llvm::BasicBlock::Create(_builder.getContext(), "OutOfGas", m_gasCheckFunc);
-
-	auto iter = m_gasCheckFunc->arg_begin();
-	llvm::Argument* gasPtr = &(*iter++);
-	gasPtr->setName("gasPtr");
-	llvm::Argument* cost = &(*iter++);
-	cost->setName("cost");
-	llvm::Argument* jmpBuf = &(*iter);
-	jmpBuf->setName("jmpBuf");
-
-	InsertPointGuard guard(m_builder);
-	m_builder.SetInsertPoint(checkBB);
-	auto gas = m_builder.CreateLoad(gasPtr, "gas");
-	auto gasUpdated = m_builder.CreateNSWSub(gas, cost, "gasUpdated");
-	auto gasOk = m_builder.CreateICmpSGE(gasUpdated, m_builder.getInt64(0), "gasOk"); // gas >= 0, with gas == 0 we can still do 0 cost instructions
-	m_builder.CreateCondBr(gasOk, updateBB, outOfGasBB, Type::expectTrue);
-
-	m_builder.SetInsertPoint(updateBB);
-	m_builder.CreateStore(gasUpdated, gasPtr);
-	m_builder.CreateRetVoid();
-
-	m_builder.SetInsertPoint(outOfGasBB);
-	m_runtimeManager.abort(jmpBuf);
-	m_builder.CreateUnreachable();
+//	llvm::Type* gasCheckArgs[] = {Type::Gas->getPointerTo(), Type::Gas, Type::BytePtr};
+//	m_gasCheckFunc = llvm::Function::Create(llvm::FunctionType::get(Type::Void, gasCheckArgs, false), llvm::Function::PrivateLinkage, "gas.check", getModule());
+//	m_gasCheckFunc->setDoesNotThrow();
+//	m_gasCheckFunc->setDoesNotCapture(1);
+//
+//	auto checkBB = llvm::BasicBlock::Create(_builder.getContext(), "Check", m_gasCheckFunc);
+//	auto updateBB = llvm::BasicBlock::Create(_builder.getContext(), "Update", m_gasCheckFunc);
+//	auto outOfGasBB = llvm::BasicBlock::Create(_builder.getContext(), "OutOfGas", m_gasCheckFunc);
+//
+//	auto iter = m_gasCheckFunc->arg_begin();
+//	llvm::Argument* gasPtr = &(*iter++);
+//	gasPtr->setName("gasPtr");
+//	llvm::Argument* cost = &(*iter++);
+//	cost->setName("cost");
+//	llvm::Argument* jmpBuf = &(*iter);
+//	jmpBuf->setName("jmpBuf");
+//
+//	InsertPointGuard guard(m_builder);
+//	m_builder.SetInsertPoint(checkBB);
+//	auto gas = m_builder.CreateLoad(gasPtr, "gas");
+//	auto gasUpdated = m_builder.CreateNSWSub(gas, cost, "gasUpdated");
+//	auto gasOk = m_builder.CreateICmpSGE(gasUpdated, m_builder.getInt64(0), "gasOk"); // gas >= 0, with gas == 0 we can still do 0 cost instructions
+//	m_builder.CreateCondBr(gasOk, updateBB, outOfGasBB, Type::expectTrue);
+//
+//	m_builder.SetInsertPoint(updateBB);
+//	m_builder.CreateStore(gasUpdated, gasPtr);
+//	m_builder.CreateRetVoid();
+//
+//	m_builder.SetInsertPoint(outOfGasBB);
+//	m_runtimeManager.abort(jmpBuf);
+//	m_builder.CreateUnreachable();
 
 	{ // YULONG interruption check
         auto interruptionCheckFuncType = llvm::FunctionType::get(Type::Void, {Type::BoolPtr, Type::BytePtr}, false);
@@ -60,13 +60,14 @@ GasMeter::GasMeter(IRBuilder& _builder, RuntimeManager& _runtimeManager, evm_mod
         auto interruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "Interrupted", m_interruptionCheckFunc);
         auto uninterruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "UnInterrupted", m_interruptionCheckFunc);
 
-        m_builder.SetInsertPoint(checkBB);
         auto iter = m_interruptionCheckFunc->arg_begin();
         llvm::Argument* interruptedPtr = &(*iter++);
         interruptedPtr->setName("interruptedPtr");
         llvm::Argument* jmpBuf = &(*iter);
         jmpBuf->setName("jmpBuf");
 
+        InsertPointGuard guard(m_builder);
+        m_builder.SetInsertPoint(checkBB);
         auto interrupted = m_builder.CreateLoad(interruptedPtr, true, "interrupted");
         m_builder.CreateCondBr(interrupted, interruptedBB, uninterruptedBB);
 

@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include <iostream>
+#include <stack>
 
 #include "evm.h"
 #include "evmjit.h"
@@ -30,20 +31,30 @@ public:
     }
 };
 
-void createVM(Callback *cb);
-
 bool isCompiled(enum evm_mode mode, struct evm_uint256be code_hash);
 
 void compileCode(enum evm_mode mode, struct evm_uint256be code_hash,
         uint8_t const* code, size_t code_size);
 
-struct evm_result executeCode(enum evm_mode mode,
+struct evm_env {
+    std::stack<struct evm_instance *> instances;
+    std::stack<Callback *> callbacks;
+    bool interrupted;
+};
+
+evm_env *createEnv();
+
+void createVM(struct evm_env *env, Callback *cb);
+
+struct evm_result executeCode(struct evm_env *env, enum evm_mode mode,
         struct evm_uint256be code_hash, uint8_t const* code, size_t code_size,
         int64_t gas, uint8_t const* input, size_t input_size,
         struct evm_uint256be value);
 
-void releaseResult(struct evm_result const* result);
+void releaseResult(struct evm_env *env, struct evm_result const* result);
 
-void releaseVM();
+void releaseVM(struct evm_env *env);
 
-void interrupt();
+void releaseEnv(struct evm_env *env);
+
+void interrupt(struct evm_env *env);

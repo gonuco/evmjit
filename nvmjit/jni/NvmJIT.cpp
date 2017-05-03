@@ -7,27 +7,17 @@
 
 #include "NvmJIT.h"
 
-#include <stack>
-
-bool interrupted = false;
-
-struct evm_env *env = NULL; // not used
-
-std::stack<struct evm_instance *> instances;
-std::stack<Callback *> callbacks;
-
-
 void doQuery(union evm_variant* result, struct evm_env* env,
         enum evm_query_key key, const union evm_variant* arg) {
-    if (!callbacks.empty()) {
-        callbacks.top()->doQuery(result, key, arg);
+    if (!env->callbacks.empty()) {
+        env->callbacks.top()->doQuery(result, key, arg);
     }
 }
 
 void doUpdate(struct evm_env* env, enum evm_update_key key,
         const union evm_variant* arg1, const union evm_variant* arg2) {
-    if (!callbacks.empty()) {
-        callbacks.top()->doUpdate(key, arg1, arg2);
+    if (!env->callbacks.empty()) {
+        env->callbacks.top()->doUpdate(key, arg1, arg2);
     }
 }
 
@@ -35,23 +25,12 @@ int64_t doCall(struct evm_env* env, enum evm_call_kind kind, int64_t gas,
         const struct evm_uint160be* address, const struct evm_uint256be* value,
         uint8_t const* input, size_t input_size, uint8_t* output,
         size_t output_size) {
-    if (!callbacks.empty()) {
-        return callbacks.top()->doCall(kind, gas, address, value, input,
+    if (!env->callbacks.empty()) {
+        return env->callbacks.top()->doCall(kind, gas, address, value, input,
                 input_size, output, output_size);
     } else {
         return EVM_FAILURE;
     }
-}
-
-void createVM(Callback *cb) {
-    struct evm_factory factory = evmjit_get_factory();
-    struct evm_instance *instance = factory.create(&doQuery, &doUpdate,
-            &doCall);
-
-    instances.push(instance);
-    callbacks.push(cb);
-
-    interrupted = false;
 }
 
 bool isCompiled(enum evm_mode mode, struct evm_uint256be code_hash) {
@@ -76,15 +55,31 @@ void compileCode(enum evm_mode mode, struct evm_uint256be code_hash,
     instance->destroy(instance);
 }
 
-struct evm_result executeCode(enum evm_mode mode,
+struct evm_env *createEnv() {
+    struct evm_env *env = new struct evm_env();
+    env->interrupted = false;
+
+    return env;
+}
+
+void createVM(struct evm_env *env, Callback *cb) {
+    struct evm_factory factory = evmjit_get_factory();
+    struct evm_instance *instance = factory.create(&doQuery, &doUpdate,
+            &doCall);
+
+    env->instances.push(instance);
+    env->callbacks.push(cb);
+}
+
+struct evm_result executeCode(struct evm_env *env, enum evm_mode mode,
         struct evm_uint256be code_hash, uint8_t const* code, size_t code_size,
         int64_t gas, uint8_t const* input, size_t input_size,
         struct evm_uint256be value) {
     struct evm_result result;
     result.code = EVM_FAILURE;
 
-    if (!instances.empty()) {
-        struct evm_instance *instance = instances.top();
+    if (!env->instances.empty()) {
+        struct evm_instance *instance = env->instances.top();
         result = instance->execute(instance, env, mode, code_hash, code,
                 code_size, gas, input, input_size, value);
     }
@@ -92,26 +87,32 @@ struct evm_result executeCode(enum evm_mode mode,
     return result;
 }
 
-void releaseResult(struct evm_result const* result) {
+void releaseResult(struct evm_env *env, struct evm_result const* result) {
     if (result != NULL) {
         result->release(result);
     }
 }
 
-void releaseVM() {
-    if (!instances.empty()) {
-        struct evm_instance *instance = instances.top();
+void releaseVM(struct evm_env *env) {
+    if (!env->instances.empty()) {
+        struct evm_instance *instance = env->instances.top();
         instance->destroy(instance);
-        instances.pop();
+        env->instances.pop();
     }
 
-    if (!callbacks.empty()) {
-        Callback *callback = callbacks.top();
+    if (!env->callbacks.empty()) {
+        Callback *callback = env->callbacks.top();
         callback->~Callback();
-        callbacks.pop();
+        env->callbacks.pop();
     }
 }
 
-void interrupt() {
-    interrupted = true;
+void releaseEnv(struct evm_env *env) {
+    if (env) {
+        delete env;
+    }
+}
+
+void interrupt(struct evm_env *env) {
+    env->interrupted = true;
 }

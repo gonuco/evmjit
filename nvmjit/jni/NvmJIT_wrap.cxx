@@ -1039,17 +1039,6 @@ SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_Callback_1change_1ownersh
 }
 
 
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_createVM(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
-  Callback *arg1 = (Callback *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  arg1 = *(Callback **)&jarg1; 
-  createVM(arg1);
-}
-
-
 SWIGEXPORT jboolean JNICALL Java_com_nuco_nvmjit_NvmJITJNI_isCompiled(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_) {
   jboolean jresult = 0 ;
   enum evm_mode arg1 ;
@@ -1096,70 +1085,233 @@ SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_compileCode(JNIEnv *jenv,
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_executeCode(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_, jlong jarg3, jlong jarg4, jlong jarg5, jlong jarg6, jlong jarg7, jlong jarg8, jobject jarg8_) {
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1instances_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< evm_instance * > arg2 ;
+  std::stack< evm_instance * > *argp2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  argp2 = *(std::stack< evm_instance * > **)&jarg2; 
+  if (!argp2) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null std::stack< evm_instance * >");
+    return ;
+  }
+  arg2 = *argp2; 
+  if (arg1) (arg1)->instances = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1instances_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jlong jresult = 0 ;
-  enum evm_mode arg1 ;
-  evm_uint256be arg2 ;
-  uint8_t *arg3 = (uint8_t *) 0 ;
-  size_t arg4 ;
-  int64_t arg5 ;
-  uint8_t *arg6 = (uint8_t *) 0 ;
-  size_t arg7 ;
-  evm_uint256be arg8 ;
-  evm_uint256be *argp2 ;
-  evm_uint256be *argp8 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< evm_instance * > result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  result =  ((arg1)->instances);
+  *(std::stack< evm_instance * > **)&jresult = new std::stack< evm_instance * >((const std::stack< evm_instance * > &)result); 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1callbacks_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< Callback * > *arg2 = (std::stack< Callback * > *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  arg2 = *(std::stack< Callback * > **)&jarg2; 
+  if (arg1) (arg1)->callbacks = *arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1callbacks_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< Callback * > *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  result = (std::stack< Callback * > *)& ((arg1)->callbacks);
+  *(std::stack< Callback * > **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1interrupted_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jboolean jarg2) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  bool arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  arg2 = jarg2 ? true : false; 
+  if (arg1) (arg1)->interrupted = arg2;
+}
+
+
+SWIGEXPORT jboolean JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1interrupted_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jboolean jresult = 0 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  bool result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  result = (bool) ((arg1)->interrupted);
+  jresult = (jboolean)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_new_1evm_1env(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  evm_env *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (evm_env *)new evm_env();
+  *(evm_env **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_delete_1evm_1env(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(evm_env **)&jarg1; 
+  delete arg1;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_createEnv(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  evm_env *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (evm_env *)createEnv();
+  *(evm_env **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_createVM(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  Callback *arg2 = (Callback *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  (void)jarg2_;
+  arg1 = *(evm_env **)&jarg1; 
+  arg2 = *(Callback **)&jarg2; 
+  createVM(arg1,arg2);
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_executeCode(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jlong jarg3, jobject jarg3_, jlong jarg4, jlong jarg5, jlong jarg6, jlong jarg7, jlong jarg8, jlong jarg9, jobject jarg9_) {
+  jlong jresult = 0 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  enum evm_mode arg2 ;
+  evm_uint256be arg3 ;
+  uint8_t *arg4 = (uint8_t *) 0 ;
+  size_t arg5 ;
+  int64_t arg6 ;
+  uint8_t *arg7 = (uint8_t *) 0 ;
+  size_t arg8 ;
+  evm_uint256be arg9 ;
+  evm_uint256be *argp3 ;
+  evm_uint256be *argp9 ;
   evm_result result;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg2_;
-  (void)jarg8_;
-  arg1 = (enum evm_mode)jarg1; 
-  argp2 = *(evm_uint256be **)&jarg2; 
-  if (!argp2) {
+  (void)jarg1_;
+  (void)jarg3_;
+  (void)jarg9_;
+  arg1 = *(evm_env **)&jarg1; 
+  arg2 = (enum evm_mode)jarg2; 
+  argp3 = *(evm_uint256be **)&jarg3; 
+  if (!argp3) {
     SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null evm_uint256be");
     return 0;
   }
-  arg2 = *argp2; 
-  arg3 = *(uint8_t **)&jarg3; 
-  arg4 = (size_t)jarg4; 
-  arg5 = (int64_t)jarg5; 
-  arg6 = *(uint8_t **)&jarg6; 
-  arg7 = (size_t)jarg7; 
-  argp8 = *(evm_uint256be **)&jarg8; 
-  if (!argp8) {
+  arg3 = *argp3; 
+  arg4 = *(uint8_t **)&jarg4; 
+  arg5 = (size_t)jarg5; 
+  arg6 = (int64_t)jarg6; 
+  arg7 = *(uint8_t **)&jarg7; 
+  arg8 = (size_t)jarg8; 
+  argp9 = *(evm_uint256be **)&jarg9; 
+  if (!argp9) {
     SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null evm_uint256be");
     return 0;
   }
-  arg8 = *argp8; 
-  result = executeCode(arg1,arg2,(unsigned char const *)arg3,arg4,arg5,(unsigned char const *)arg6,arg7,arg8);
+  arg9 = *argp9; 
+  result = executeCode(arg1,arg2,arg3,(unsigned char const *)arg4,arg5,arg6,(unsigned char const *)arg7,arg8,arg9);
   *(evm_result **)&jresult = new evm_result((const evm_result &)result); 
   return jresult;
 }
 
 
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_releaseResult(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
-  evm_result *arg1 = (evm_result *) 0 ;
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_releaseResult(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  evm_result *arg2 = (evm_result *) 0 ;
   
   (void)jenv;
   (void)jcls;
   (void)jarg1_;
-  arg1 = *(evm_result **)&jarg1; 
-  releaseResult((evm_result const *)arg1);
+  (void)jarg2_;
+  arg1 = *(evm_env **)&jarg1; 
+  arg2 = *(evm_result **)&jarg2; 
+  releaseResult(arg1,(evm_result const *)arg2);
 }
 
 
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_releaseVM(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_releaseVM(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  
   (void)jenv;
   (void)jcls;
-  releaseVM();
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  releaseVM(arg1);
 }
 
 
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_interrupt(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_releaseEnv(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  
   (void)jenv;
   (void)jcls;
-  interrupt();
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  releaseEnv(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_interrupt(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  interrupt(arg1);
 }
 
 

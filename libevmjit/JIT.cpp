@@ -21,6 +21,7 @@
 #include "Utils.h"
 #include "BuildInfo.gen.h"
 
+#include "NvmJIT.h"
 
 static_assert(sizeof(evm_uint256be) == 32, "evm_uint256be is too big");
 static_assert(sizeof(evm_uint160be) == 20, "evm_uint160be is too big");
@@ -315,7 +316,7 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	rt.callData = input;
 	rt.callDataSize = input_size;
 	std::memcpy(&rt.apparentValue, &value, sizeof(value));
-	rt.interruptedPtr = &interrupted;
+	rt.interruptedPtr = &env->interrupted;
 
 	ExecutionContext ctx{rt, env};
 

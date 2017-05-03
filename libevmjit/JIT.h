@@ -7,8 +7,6 @@
 
 #include <evmjit.h>
 
-extern bool interrupted;
-
 namespace dev
 {
 namespace evmjit
