@@ -30,6 +30,7 @@ enum evm_result_code {
     EVM_STACK_OVERFLOW = 5,
     EVM_STACK_UNDERFLOW = 6,
     EVM_REVERT = 7,
+    EVM_INTERNAL_ERROR = -1,
 };
 
 enum evm_query_key {
@@ -105,6 +106,5 @@ struct evm_result {
     uint8_t const* output_data;
     size_t output_size;
     evm_release_result_fn release;
-    char const* error_message;
-    void* internal_memory;
+    void* context;
 };

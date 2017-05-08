@@ -1586,6 +1586,18 @@ SWIGEXPORT jint JNICALL Java_com_nuco_nvmjit_NvmJITJNI_EVM_1REVERT_1get(JNIEnv *
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_nuco_nvmjit_NvmJITJNI_EVM_1INTERNAL_1ERROR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  evm_result_code result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (evm_result_code)EVM_INTERNAL_ERROR;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_nuco_nvmjit_NvmJITJNI_EVM_1SLOAD_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   evm_query_key result;
@@ -2375,47 +2387,7 @@ SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1release_1ge
 }
 
 
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1error_1message_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jstring jarg2) {
-  evm_result *arg1 = (evm_result *) 0 ;
-  char *arg2 = (char *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  arg1 = *(evm_result **)&jarg1; 
-  arg2 = 0;
-  if (jarg2) {
-    arg2 = (char *)jenv->GetStringUTFChars(jarg2, 0);
-    if (!arg2) return ;
-  }
-  {
-    if (arg2) {
-      arg1->error_message = (char const *) (new char[strlen((const char *)arg2)+1]);
-      strcpy((char *)arg1->error_message, (const char *)arg2);
-    } else {
-      arg1->error_message = 0;
-    }
-  }
-  if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
-}
-
-
-SWIGEXPORT jstring JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1error_1message_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
-  jstring jresult = 0 ;
-  evm_result *arg1 = (evm_result *) 0 ;
-  char *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  arg1 = *(evm_result **)&jarg1; 
-  result = (char *) ((arg1)->error_message);
-  if (result) jresult = jenv->NewStringUTF((const char *)result);
-  return jresult;
-}
-
-
-SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1internal_1memory_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1context_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
   evm_result *arg1 = (evm_result *) 0 ;
   void *arg2 = (void *) 0 ;
   
@@ -2424,11 +2396,11 @@ SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1internal_1me
   (void)jarg1_;
   arg1 = *(evm_result **)&jarg1; 
   arg2 = *(void **)&jarg2; 
-  if (arg1) (arg1)->internal_memory = arg2;
+  if (arg1) (arg1)->context = arg2;
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1internal_1memory_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1context_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jlong jresult = 0 ;
   evm_result *arg1 = (evm_result *) 0 ;
   void *result = 0 ;
@@ -2437,7 +2409,7 @@ SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1result_1internal_1m
   (void)jcls;
   (void)jarg1_;
   arg1 = *(evm_result **)&jarg1; 
-  result = (void *) ((arg1)->internal_memory);
+  result = (void *) ((arg1)->context);
   *(void **)&jresult = result; 
   return jresult;
 }
