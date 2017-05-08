@@ -27,13 +27,17 @@ llvm::Function* Memory::getRequireFunc()
 	auto& func = m_require;
 	if (!func)
 	{
-		llvm::Type* argTypes[] = {Array::getType()->getPointerTo(), Type::Word, Type::Word, Type::BytePtr, Type::GasPtr};
+		llvm::Type* argTypes[] = {Array::getType()->getPointerTo(), Type::Size, Type::SizePtr, Type::Word, Type::Word, Type::BytePtr, Type::GasPtr};
 		func = llvm::Function::Create(llvm::FunctionType::get(Type::Void, argTypes, false), llvm::Function::PrivateLinkage, "mem.require", getModule());
 		func->setDoesNotThrow();
 
 		auto iter = func->arg_begin();
 		llvm::Argument* mem = &(*iter++);
 		mem->setName("mem");
+		llvm::Argument* maxMemSize = &(*iter++);
+		maxMemSize->setName("maxMemSize");
+		llvm::Argument* curMemSizePtr = &(*iter++);
+		curMemSizePtr->setName("curMemSizePtr");
 		llvm::Argument* blkOffset = &(*iter++);
 		blkOffset->setName("blkOffset");
 		llvm::Argument* blkSize = &(*iter++);
@@ -45,8 +49,10 @@ llvm::Function* Memory::getRequireFunc()
 
 		auto preBB = llvm::BasicBlock::Create(func->getContext(), "Pre", func);
 		auto checkBB = llvm::BasicBlock::Create(func->getContext(), "Check", func);
+		auto checkCapBB = llvm::BasicBlock::Create(func->getContext(), "CheckCap", func);
 		auto resizeBB = llvm::BasicBlock::Create(func->getContext(), "Resize", func);
 		auto returnBB = llvm::BasicBlock::Create(func->getContext(), "Return", func);
+		auto overflowBB = llvm::BasicBlock::Create(func->getContext(), "Overflow", func);
 
 		InsertPointGuard guard(m_builder); // Restores insert point at function exit
 
@@ -67,28 +73,42 @@ llvm::Function* Memory::getRequireFunc()
 		auto sizeCur = m_memory.size(mem);
 		auto sizeOk = m_builder.CreateICmpULE(sizeReq, sizeCur, "sizeOk");
 
-		m_builder.CreateCondBr(sizeOk, returnBB, resizeBB, Type::expectTrue);
+		m_builder.CreateCondBr(sizeOk, returnBB, checkCapBB, Type::expectTrue);
+
+		// BB "CheckCap"
+		m_builder.SetInsertPoint(checkCapBB);
+		auto memCapOk = m_builder.CreateICmpULE(sizeReq, maxMemSize, "memCapOk");
+		m_builder.CreateCondBr(memCapOk, resizeBB, overflowBB, Type::expectTrue);
 
 		// BB "Resize"
 		m_builder.SetInsertPoint(resizeBB);
-		// Check gas first
-		auto w1 = m_builder.CreateLShr(sizeReq, 5);
-		auto w1s = m_builder.CreateNUWMul(w1, w1);
-		auto c1 = m_builder.CreateAdd(m_builder.CreateNUWMul(w1, m_builder.getInt64(3)), m_builder.CreateLShr(w1s, 9));
-		auto w0 = m_builder.CreateLShr(sizeCur, 5);
-		auto w0s = m_builder.CreateNUWMul(w0, w0);
-		auto c0 = m_builder.CreateAdd(m_builder.CreateNUWMul(w0, m_builder.getInt64(3)), m_builder.CreateLShr(w0s, 9));
-		auto cc = m_builder.CreateNUWSub(c1, c0);
-		auto costOk = m_builder.CreateAnd(blkOffsetOk, blkSizeOk, "costOk");
-		auto c = m_builder.CreateSelect(costOk, cc, m_builder.getInt64(std::numeric_limits<int64_t>::max()), "c");
-		m_gasMeter.count(c, jmpBuf, gas);
+//		// Check gas first
+//		auto w1 = m_builder.CreateLShr(sizeReq, 5);
+//		auto w1s = m_builder.CreateNUWMul(w1, w1);
+//		auto c1 = m_builder.CreateAdd(m_builder.CreateNUWMul(w1, m_builder.getInt64(3)), m_builder.CreateLShr(w1s, 9));
+//		auto w0 = m_builder.CreateLShr(sizeCur, 5);
+//		auto w0s = m_builder.CreateNUWMul(w0, w0);
+//		auto c0 = m_builder.CreateAdd(m_builder.CreateNUWMul(w0, m_builder.getInt64(3)), m_builder.CreateLShr(w0s, 9));
+//		auto cc = m_builder.CreateNUWSub(c1, c0);
+//		auto costOk = m_builder.CreateAnd(blkOffsetOk, blkSizeOk, "costOk");
+//		auto c = m_builder.CreateSelect(costOk, cc, m_builder.getInt64(std::numeric_limits<int64_t>::max()), "c");
+//		m_gasMeter.count(c, jmpBuf, gas);
 		// Resize
 		m_memory.extend(mem, sizeReq);
+		// update runtime curMemSize
+		auto sizeCur2 = m_memory.size(mem);
+		m_builder.CreateStore(sizeCur2, curMemSizePtr, true);
+		// return
 		m_builder.CreateBr(returnBB);
 
 		// BB "Return"
 		m_builder.SetInsertPoint(returnBB);
 		m_builder.CreateRetVoid();
+
+		// BB "Overflow"
+		m_builder.SetInsertPoint(overflowBB);
+		getRuntimeManager().abort(jmpBuf);
+		m_builder.CreateUnreachable();
 	}
 	return func;
 }
@@ -203,7 +223,9 @@ void Memory::require(llvm::Value* _offset, llvm::Value* _size)
 		if (!constant->getValue())
 			return;
 	}
-	m_builder.CreateCall(getRequireFunc(), {getRuntimeManager().getMem(), _offset, _size, getRuntimeManager().getJmpBuf(), getRuntimeManager().getGasPtr()});
+	m_builder.CreateCall(getRequireFunc(), {getRuntimeManager().getMem(),
+			getRuntimeManager().getMaxMemSize(), getRuntimeManager().getCurMemSizePtr(),
+			_offset, _size, getRuntimeManager().getJmpBuf(), getRuntimeManager().getGasPtr()});
 }
 
 void Memory::copyBytes(llvm::Value* _srcPtr, llvm::Value* _srcSize, llvm::Value* _srcIdx,
@@ -214,8 +236,8 @@ void Memory::copyBytes(llvm::Value* _srcPtr, llvm::Value* _srcSize, llvm::Value*
 	// Additional copy cost
 	// TODO: This round ups to 32 happens in many places
 	auto reqBytes = m_builder.CreateTrunc(_reqBytes, Type::Gas);
-	auto copyWords = m_builder.CreateUDiv(m_builder.CreateNUWAdd(reqBytes, m_builder.getInt64(31)), m_builder.getInt64(32));
-	m_gasMeter.countCopy(copyWords);
+//	auto copyWords = m_builder.CreateUDiv(m_builder.CreateNUWAdd(reqBytes, m_builder.getInt64(31)), m_builder.getInt64(32));
+//	m_gasMeter.countCopy(copyWords);
 
 	// Algorithm:
 	// isOutsideData = idx256 >= size256

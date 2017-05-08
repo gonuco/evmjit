@@ -23,7 +23,8 @@ struct Type
 
     static llvm::IntegerType* Bool;
     static llvm::PointerType* BoolPtr;
-	static llvm::IntegerType* Size;
+    static llvm::IntegerType* Size;
+    static llvm::PointerType* SizePtr;
 	static llvm::IntegerType* Gas;
 	static llvm::PointerType* GasPtr;
 

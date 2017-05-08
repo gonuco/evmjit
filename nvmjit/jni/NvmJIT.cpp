@@ -7,6 +7,8 @@
 
 #include "NvmJIT.h"
 
+int64_t maxTotalMemory = 1024 * 1024 * 1024;
+
 void doQuery(union evm_variant* result, struct evm_env* env,
         enum evm_query_key key, const union evm_variant* arg) {
     if (!env->callbacks.empty()) {
@@ -69,6 +71,11 @@ void createVM(struct evm_env *env, Callback *cb) {
 
     env->instances.push(instance);
     env->callbacks.push(cb);
+
+    int64_t maxMemSize = env->maxMemSizes.empty() ? maxTotalMemory : maxTotalMemory - *env->curMemSizes.top();
+    int64_t *curMemSize = new int64_t(0);
+    env->maxMemSizes.push(maxMemSize);
+    env->curMemSizes.push(curMemSize);
 }
 
 struct evm_result executeCode(struct evm_env *env, enum evm_mode mode,
@@ -104,6 +111,15 @@ void releaseVM(struct evm_env *env) {
         Callback *callback = env->callbacks.top();
         callback->~Callback();
         env->callbacks.pop();
+    }
+
+    if (!env->maxMemSizes.empty()) {
+        env->maxMemSizes.pop();
+    }
+
+    if (!env->curMemSizes.empty()) {
+        delete env->curMemSizes.top();
+        env->curMemSizes.pop();
     }
 }
 

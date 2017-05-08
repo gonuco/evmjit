@@ -1147,6 +1147,74 @@ SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1callbacks_1get
 }
 
 
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1maxMemSizes_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< int64_t > arg2 ;
+  std::stack< int64_t > *argp2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  argp2 = *(std::stack< int64_t > **)&jarg2; 
+  if (!argp2) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null std::stack< int64_t >");
+    return ;
+  }
+  arg2 = *argp2; 
+  if (arg1) (arg1)->maxMemSizes = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1maxMemSizes_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< int64_t > result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  result =  ((arg1)->maxMemSizes);
+  *(std::stack< int64_t > **)&jresult = new std::stack< int64_t >((const std::stack< int64_t > &)result); 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1curMemSizes_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< int64_t * > arg2 ;
+  std::stack< int64_t * > *argp2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  argp2 = *(std::stack< int64_t * > **)&jarg2; 
+  if (!argp2) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "Attempt to dereference null std::stack< int64_t * >");
+    return ;
+  }
+  arg2 = *argp2; 
+  if (arg1) (arg1)->curMemSizes = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1curMemSizes_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  evm_env *arg1 = (evm_env *) 0 ;
+  std::stack< int64_t * > result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(evm_env **)&jarg1; 
+  result =  ((arg1)->curMemSizes);
+  *(std::stack< int64_t * > **)&jresult = new std::stack< int64_t * >((const std::stack< int64_t * > &)result); 
+  return jresult;
+}
+
+
 SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_evm_1env_1interrupted_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jboolean jarg2) {
   evm_env *arg1 = (evm_env *) 0 ;
   bool arg2 ;
@@ -1312,6 +1380,28 @@ SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_interrupt(JNIEnv *jenv, j
   (void)jarg1_;
   arg1 = *(evm_env **)&jarg1; 
   interrupt(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_maxTotalMemory_1set(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  int64_t arg1 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int64_t)jarg1; 
+  maxTotalMemory = arg1;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_maxTotalMemory_1get(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  int64_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int64_t)maxTotalMemory;
+  jresult = (jlong)result; 
+  return jresult;
 }
 
 

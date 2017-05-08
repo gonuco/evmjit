@@ -36,12 +36,14 @@ struct RuntimeData
 		Code,
 		CodeSize,
 		InterruptedPtr,
+		MaxMemSize,
+		CurMemSizePtr,
 
 		ReturnData 		   = CallData,		///< Return data pointer (set only in case of RETURN)
 		ReturnDataSize 	   = CallDataSize,	///< Return data size (set only in case of RETURN)
 	};
 
-	static size_t const numElements = InterruptedPtr + 1;
+	static size_t const numElements = CurMemSizePtr + 1;
 
 	int64_t 	gas = 0;
 	int64_t 	gasPrice = 0;
@@ -51,6 +53,8 @@ struct RuntimeData
 	byte const* code = nullptr;
 	uint64_t 	codeSize = 0;
 	bool*       interruptedPtr;
+	int64_t     maxMemSize;
+	int64_t*    curMemSizePtr;
 };
 
 struct JITSchedule

@@ -196,9 +196,6 @@ std::unique_ptr<llvm::Module> Compiler::compile(code_iterator _begin, code_itera
 	m_builder.CreateCondBr(normalFlow, entryBB->getNextNode(), abortBB, Type::expectTrue);
 
 	for (auto& block: blocks) {
-//		if (interrupted) {
-//			break;
-//		}
 		compileBasicBlock(block, runtimeManager, arith, memory, ext, gasMeter);
 	}
 

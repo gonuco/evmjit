@@ -31,6 +31,8 @@ public:
 	llvm::Value* getCodeSize();
 	llvm::Value* getCallDataSize();
     llvm::Value* getInterruptedPtr();
+    llvm::Value* getMaxMemSize();
+    llvm::Value* getCurMemSizePtr();
 	llvm::Value* getJmpBuf() { return m_jmpBuf; }
 	void setGas(llvm::Value* _gas);
 

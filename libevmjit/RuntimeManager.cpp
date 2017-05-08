@@ -30,6 +30,8 @@ llvm::StructType* RuntimeManager::getRuntimeDataType()
 			Type::BytePtr,	// code
             Type::Size,     // codeSize
             Type::BoolPtr,  // interruptedPtr
+            Type::Size,     // maxMemSize
+            Type::SizePtr,  // curMemSize
 		};
 		type = llvm::StructType::create(elems, "RuntimeData");
 	}
@@ -67,6 +69,8 @@ llvm::Twine getName(RuntimeData::Index _index)
 	case RuntimeData::Code:			return "code.ptr";
     case RuntimeData::CodeSize:     return "code.size";
     case RuntimeData::InterruptedPtr:       return "interrupted.ptr";
+    case RuntimeData::MaxMemSize:           return "max.mem.size";
+    case RuntimeData::CurMemSizePtr:        return "cur.mem.size.ptr";
 	}
 }
 }
@@ -226,6 +230,16 @@ llvm::Value* RuntimeManager::getGasPtr()
 llvm::Value* RuntimeManager::getInterruptedPtr()
 {
     return m_dataElts[RuntimeData::InterruptedPtr];
+}
+
+llvm::Value* RuntimeManager::getMaxMemSize()
+{
+    return m_dataElts[RuntimeData::MaxMemSize];
+}
+
+llvm::Value* RuntimeManager::getCurMemSizePtr()
+{
+    return m_dataElts[RuntimeData::CurMemSizePtr];
 }
 
 llvm::Value* RuntimeManager::getMem()

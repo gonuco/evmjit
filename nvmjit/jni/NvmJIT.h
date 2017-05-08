@@ -39,6 +39,8 @@ void compileCode(enum evm_mode mode, struct evm_uint256be code_hash,
 struct evm_env {
     std::stack<struct evm_instance *> instances;
     std::stack<Callback *> callbacks;
+    std::stack<int64_t> maxMemSizes;
+    std::stack<int64_t *> curMemSizes;
     bool interrupted;
 };
 
@@ -58,3 +60,7 @@ void releaseVM(struct evm_env *env);
 void releaseEnv(struct evm_env *env);
 
 void interrupt(struct evm_env *env);
+
+// using signed integer for JNI convenience
+extern int64_t maxTotalMemory;
+

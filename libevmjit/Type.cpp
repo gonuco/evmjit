@@ -16,6 +16,7 @@ llvm::PointerType* Type::WordPtr;
 llvm::IntegerType* Type::Bool;
 llvm::PointerType* Type::BoolPtr;
 llvm::IntegerType* Type::Size;
+llvm::PointerType* Type::SizePtr;
 llvm::IntegerType* Type::Gas;
 llvm::PointerType* Type::GasPtr;
 llvm::IntegerType* Type::Byte;
@@ -37,6 +38,7 @@ void Type::init(llvm::LLVMContext& _context)
 		Bool = llvm::Type::getInt1Ty(_context);
 		BoolPtr = Bool->getPointerTo();
 		Size = llvm::Type::getInt64Ty(_context);
+		SizePtr = Size->getPointerTo();
 		Gas = Size;
 		GasPtr = Gas->getPointerTo();
 		Byte = llvm::Type::getInt8Ty(_context);

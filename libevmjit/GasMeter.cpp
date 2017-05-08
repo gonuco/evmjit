@@ -166,21 +166,21 @@ void GasMeter::giveBack(llvm::Value* _gas)
 
 void GasMeter::commitCostBlock()
 {
-	// If any uncommited block
-	if (m_checkCall)
-	{
-		if (m_blockCost == 0) // Do not check 0
-		{
-			m_checkCall->eraseFromParent(); // Remove the gas check call
-			m_checkCall = nullptr;
-			return;
-		}
-
-		m_checkCall->setArgOperand(1, m_builder.getInt64(m_blockCost)); // Update block cost in gas check call
-		m_checkCall = nullptr; // End cost-block
-		m_blockCost = 0;
-	}
-	assert(m_blockCost == 0);
+//	// If any uncommited block
+//	if (m_checkCall)
+//	{
+//		if (m_blockCost == 0) // Do not check 0
+//		{
+//			m_checkCall->eraseFromParent(); // Remove the gas check call
+//			m_checkCall = nullptr;
+//			return;
+//		}
+//
+//		m_checkCall->setArgOperand(1, m_builder.getInt64(m_blockCost)); // Update block cost in gas check call
+//		m_checkCall = nullptr; // End cost-block
+//		m_blockCost = 0;
+//	}
+//	assert(m_blockCost == 0);
 }
 
 void GasMeter::countMemory(llvm::Value* _additionalMemoryInWords, llvm::Value* _jmpBuf, llvm::Value* _gasPtr)
