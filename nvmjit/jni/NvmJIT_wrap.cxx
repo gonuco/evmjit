@@ -1405,6 +1405,28 @@ SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_maxTotalMemory_1get(JNIE
 }
 
 
+SWIGEXPORT void JNICALL Java_com_nuco_nvmjit_NvmJITJNI_h256Type_1set(JNIEnv *jenv, jclass jcls, jint jarg1) {
+  int arg1 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  h256Type = arg1;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_nuco_nvmjit_NvmJITJNI_h256Type_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)h256Type;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jlong JNICALL Java_com_nuco_nvmjit_NvmJITJNI_new_1ByteArray(JNIEnv *jenv, jclass jcls, jint jarg1) {
   jlong jresult = 0 ;
   int arg1 ;

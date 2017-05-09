@@ -9,6 +9,8 @@
 
 int64_t maxTotalMemory = 1024 * 1024 * 1024;
 
+int h256Type = 0;
+
 void doQuery(union evm_variant* result, struct evm_env* env,
         enum evm_query_key key, const union evm_variant* arg) {
     if (!env->callbacks.empty()) {

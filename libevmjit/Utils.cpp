@@ -6,6 +6,12 @@
 
 #include "BuildInfo.gen.h"
 
+// defined in NvmJIT.cpp
+extern int h256Type;
+
+// implemented externally
+extern "C" void h256(int type, uint8_t const* in, size_t inLen, uint8_t* out, size_t outLen);
+
 namespace dev
 {
 namespace evmjit
@@ -177,7 +183,11 @@ defkeccak(256)
 
 void keccak(uint8_t const* _data, uint64_t _size, uint8_t* o_hash)
 {
-	keccak_256(o_hash, 32, _data, _size);
+	if (h256Type == 0) {
+		keccak_256(o_hash, 32, _data, _size);
+	} else {
+		h256(h256Type, _data, _size, o_hash, 32);
+	}
 }
 
 }

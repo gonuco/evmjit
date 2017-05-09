@@ -64,3 +64,5 @@ void interrupt(struct evm_env *env);
 // using signed integer for JNI convenience
 extern int64_t maxTotalMemory;
 
+extern int h256Type;
+
