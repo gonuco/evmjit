@@ -110,8 +110,6 @@ void releaseVM(struct evm_env *env) {
     }
 
     if (!env->callbacks.empty()) {
-        Callback *callback = env->callbacks.top();
-        callback->~Callback();
         env->callbacks.pop();
     }
 
