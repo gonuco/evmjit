@@ -23,6 +23,8 @@
 
 #include "NvmJIT.h"
 
+#include "LRUCache11.hpp"
+
 static_assert(sizeof(evm_uint256be) == 32, "evm_uint256be is too big");
 static_assert(sizeof(evm_uint160be) == 20, "evm_uint160be is too big");
 static_assert(sizeof(evm_result) <= 64, "evm_result does not fit cache line");
@@ -109,8 +111,7 @@ void parseOptions()
 class JITImpl: public evm_instance
 {
 	std::unique_ptr<llvm::ExecutionEngine> m_engine;
-	mutable std::mutex x_codeMap;
-	std::unordered_map<std::string, ExecFunc> m_codeMap;
+	lru11::Cache<std::string, ExecFunc> m_codeMap;
 
 	static llvm::LLVMContext& getLLVMContext()
 	{
@@ -133,7 +134,7 @@ public:
 
 	llvm::ExecutionEngine& engine() { return *m_engine; }
 
-	ExecFunc getExecFunc(std::string const& _codeIdentifier) const;
+	ExecFunc getExecFunc(std::string const& _codeIdentifier);
 	void mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr);
 
 	ExecFunc compile(evm_mode _mode, byte const* _code, uint64_t _codeSize, std::string const& _codeIdentifier);
@@ -201,19 +202,19 @@ class SymbolResolver : public llvm::SectionMemoryManager
 
 
 
-ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier) const
+ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier)
 {
-	std::lock_guard<std::mutex> lock{x_codeMap};
-	auto it = m_codeMap.find(_codeIdentifier);
-	if (it != m_codeMap.end())
-		return it->second;
-	return nullptr;
+	ExecFunc result;
+	if (m_codeMap.tryGet(_codeIdentifier, result)) {
+		return result;
+	} else {
+		return nullptr;
+	}
 }
 
 void JITImpl::mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr)
 {
-	std::lock_guard<std::mutex> lock{x_codeMap};
-	m_codeMap.emplace(_codeIdentifier, _funcAddr);
+	m_codeMap.insert(_codeIdentifier, _funcAddr);
 }
 
 ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
@@ -419,7 +420,8 @@ JITImpl::JITImpl():
 		              evmjit::execute,
 		              evmjit::get_code_status,
 		              evmjit::prepare_code,
-		              evmjit::set_option})
+		              evmjit::set_option}),
+		m_codeMap(1024, 0)
 {
 	parseOptions();
 
