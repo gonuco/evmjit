@@ -4,6 +4,7 @@
 
 #include "preprocessor/llvm_includes_start.h"
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
 #include <llvm/ADT/StringSwitch.h>
 #include <llvm/ADT/Triple.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
@@ -108,10 +109,34 @@ void parseOptions()
 	cl::ParseEnvironmentOptions("evmjit", "EVMJIT", "Ethereum EVM JIT Compiler");
 }
 
+class CodeMapCache : public lru11::Cache<std::string, ExecFunc>
+{
+public:
+	CodeMapCache(llvm::ExecutionEngine &_engine):
+		lru11::Cache<std::string, ExecFunc>(1024, 0),
+		engine(_engine) {}
+
+protected:
+	list_type prune() override
+	{
+		list_type removed = lru11::Cache<std::string, ExecFunc>::prune();
+
+		for (auto it = removed.begin(); it != removed.end(); it++) {
+			llvm::Function *func = engine.FindFunctionNamed((*it).key.c_str());
+			func->eraseFromParent();
+		}
+
+		return removed;
+	}
+
+private:
+	llvm::ExecutionEngine &engine;
+};
+
 class JITImpl: public evm_instance
 {
 	std::unique_ptr<llvm::ExecutionEngine> m_engine;
-	lru11::Cache<std::string, ExecFunc> m_codeMap;
+	std::unique_ptr<CodeMapCache> m_codeMap;
 
 	static llvm::LLVMContext& getLLVMContext()
 	{
@@ -205,7 +230,7 @@ class SymbolResolver : public llvm::SectionMemoryManager
 ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier)
 {
 	ExecFunc result;
-	if (m_codeMap.tryGet(_codeIdentifier, result)) {
+	if (m_codeMap->tryGet(_codeIdentifier, result)) {
 		return result;
 	} else {
 		return nullptr;
@@ -214,7 +239,7 @@ ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier)
 
 void JITImpl::mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr)
 {
-	m_codeMap.insert(_codeIdentifier, _funcAddr);
+	m_codeMap->insert(_codeIdentifier, _funcAddr);
 }
 
 ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
@@ -420,8 +445,7 @@ JITImpl::JITImpl():
 		              evmjit::execute,
 		              evmjit::get_code_status,
 		              evmjit::prepare_code,
-		              evmjit::set_option}),
-		m_codeMap(1024, 0)
+		              evmjit::set_option})
 {
 	parseOptions();
 
@@ -449,6 +473,7 @@ JITImpl::JITImpl():
 #endif
 
 	m_engine.reset(builder.create());
+	m_codeMap.reset(new CodeMapCache(engine()));
 
 	// TODO: Update cache listener
 	m_engine->setObjectCache(Cache::init(g_cache, nullptr));

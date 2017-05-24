@@ -185,18 +185,19 @@ class Cache : private NoCopy {
   }
 
  protected:
-  size_t prune() {
+  virtual list_type prune() {
+    list_type removed;
+
     size_t maxAllowed = maxSize_ + elasticity_;
     if (maxSize_ == 0 || cache_.size() < maxAllowed) {
-      return 0;
+      return removed;
     }
-    size_t count = 0;
     while (cache_.size() > maxSize_) {
+      removed.push_back(keys_.back());
       cache_.erase(keys_.back().key);
       keys_.pop_back();
-      ++count;
     }
-    return count;
+    return removed;
   }
 
  private:
