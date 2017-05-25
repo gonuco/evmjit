@@ -11,7 +11,7 @@ pipeline {
     stage('Archive') {
       steps {
         sh "cd nvmjit/jni && make dist"
-        archiveArtifacts artifacts: findFiles(glob: 'nvmjit/jni/*.tar.gz')[0].path, fingerprint: true
+        archiveArtifacts artifacts: findFiles(glob: 'nvmjit/jni/build/*.tar.gz')[0].path, fingerprint: true
       }
     }
     
