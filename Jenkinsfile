@@ -1,4 +1,11 @@
 // Jenkinsfile for NvmJIT
+
+// configuration
+properties([[$class: 'jenkins.model.BuildDiscarderProperty', strategy:
+            [$class: 'LogRotator', numToKeepStr: '100', artifactNumToKeepStr: '20']
+           ]])
+
+// main pipeline
 pipeline {
   agent any
   stages {
