@@ -24,6 +24,6 @@ pipeline {
 
   environment {
     JAVA_HOME = "${env.JDK_9}"
-    BLAKE2B_DIR = "${env.BLAKE2B_DIR}"
+    BLAKE2B_DIR = "${env.NUCO_LIB}"
   }
 }
