@@ -50,7 +50,8 @@ clean:
 	rm -rf ${BUILD_DIR}
 	
 dist: libnvmjit.so
+	cp ${BLAKE2B_LIB}/blake2b.so ${BUILD_DIR}
 	cp ${LLVM_LIB}/libLLVM-3.9.so.1 ${BUILD_DIR}
 	cp file.list ${BUILD_DIR}
-	cd ${BUILD_DIR} && tar -czf nvmjit_all_${VERSION}.tar.gz file.list libLLVM-3.9.so.1 libnvmjit.so
+	cd ${BUILD_DIR} && tar -czf nvmjit_all_${VERSION}.tar.gz file.list blake2b.so libLLVM-3.9.so.1 libnvmjit.so
 
