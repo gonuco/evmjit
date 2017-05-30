@@ -763,6 +763,7 @@ void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runti
 			llvm::Value* r = nullptr;
 			llvm::Value* pAddr = nullptr;
 			std::tie(r, pAddr) = _ext.create(createGas, endowment, initOff, initSize);
+			_gasMeter.addCallbackReturnCheck(r);
 
 			auto ret =
 				m_builder.CreateICmpSGE(r, m_builder.getInt64(0), "create.ret");
@@ -854,6 +855,8 @@ void Compiler::compileBasicBlock(BasicBlock& _basicBlock, RuntimeManager& _runti
 			gas = m_builder.CreateAdd(gas, stipend, "call.gas", true, true);
 			auto r = _ext.call(kind, gas, address, value, inOff, inSize, outOff,
 							   outSize);
+			_gasMeter.addCallbackReturnCheck(r);
+
 			auto ret =
 				m_builder.CreateICmpSGE(r, m_builder.getInt64(0), "call.ret");
 			auto rmagic = m_builder.CreateSelect(

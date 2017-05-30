@@ -53,36 +53,67 @@ GasMeter::GasMeter(IRBuilder& _builder, RuntimeManager& _runtimeManager, evm_mod
 //	m_builder.CreateUnreachable();
 
 	{ // YULONG interruption check
-        auto interruptionCheckFuncType = llvm::FunctionType::get(Type::Void, {Type::BoolPtr, Type::BytePtr}, false);
-        m_interruptionCheckFunc = llvm::Function::Create(interruptionCheckFuncType, llvm::Function::PrivateLinkage, "interruption.check", getModule());
+		auto interruptionCheckFuncType = llvm::FunctionType::get(Type::Void, {Type::BoolPtr, Type::BytePtr}, false);
+		m_interruptionCheckFunc = llvm::Function::Create(interruptionCheckFuncType, llvm::Function::PrivateLinkage, "interruption.check", getModule());
 
-        auto checkBB = llvm::BasicBlock::Create(_builder.getContext(), "Check", m_interruptionCheckFunc);
-        auto interruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "Interrupted", m_interruptionCheckFunc);
-        auto uninterruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "UnInterrupted", m_interruptionCheckFunc);
+		auto checkBB = llvm::BasicBlock::Create(_builder.getContext(), "Check", m_interruptionCheckFunc);
+		auto interruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "Interrupted", m_interruptionCheckFunc);
+		auto uninterruptedBB = llvm::BasicBlock::Create(_builder.getContext(), "UnInterrupted", m_interruptionCheckFunc);
 
-        auto iter = m_interruptionCheckFunc->arg_begin();
-        llvm::Argument* interruptedPtr = &(*iter++);
-        interruptedPtr->setName("interruptedPtr");
-        llvm::Argument* jmpBuf = &(*iter);
-        jmpBuf->setName("jmpBuf");
+		auto iter = m_interruptionCheckFunc->arg_begin();
+		llvm::Argument* interruptedPtr = &(*iter++);
+		interruptedPtr->setName("interruptedPtr");
+		llvm::Argument* jmpBuf = &(*iter);
+		jmpBuf->setName("jmpBuf");
 
-        InsertPointGuard guard(m_builder);
-        m_builder.SetInsertPoint(checkBB);
-        auto interrupted = m_builder.CreateLoad(interruptedPtr, true, "interrupted");
-        m_builder.CreateCondBr(interrupted, interruptedBB, uninterruptedBB);
+		InsertPointGuard guard(m_builder);
+		m_builder.SetInsertPoint(checkBB);
+		auto interrupted = m_builder.CreateLoad(interruptedPtr, true, "interrupted");
+		m_builder.CreateCondBr(interrupted, interruptedBB, uninterruptedBB);
 
-        m_builder.SetInsertPoint(interruptedBB);
-        m_runtimeManager.abort(jmpBuf);
-        m_builder.CreateUnreachable();
+		m_builder.SetInsertPoint(interruptedBB);
+		m_runtimeManager.abort(jmpBuf);
+		m_builder.CreateUnreachable();
 
-        m_builder.SetInsertPoint(uninterruptedBB);
-        m_builder.CreateRetVoid();
+		m_builder.SetInsertPoint(uninterruptedBB);
+		m_builder.CreateRetVoid();
+	}
+
+	{ // YULONG callback return check
+		auto callbackReturnCheckFuncType = llvm::FunctionType::get(Type::Void, {Type::Size, Type::BytePtr}, false);
+		m_callbackReturnCheckFunc = llvm::Function::Create(callbackReturnCheckFuncType, llvm::Function::PrivateLinkage, "callbackReturn.check", getModule());
+
+		auto checkBB = llvm::BasicBlock::Create(_builder.getContext(), "Check", m_callbackReturnCheckFunc);
+		auto goodBB = llvm::BasicBlock::Create(_builder.getContext(), "Good", m_callbackReturnCheckFunc);
+		auto badBB = llvm::BasicBlock::Create(_builder.getContext(), "Bad", m_callbackReturnCheckFunc);
+
+		auto iter = m_callbackReturnCheckFunc->arg_begin();
+		llvm::Argument* r = &(*iter++);
+		r->setName("r");
+		llvm::Argument* jmpBuf = &(*iter);
+		jmpBuf->setName("jmpBuf");
+
+		InsertPointGuard guard(m_builder);
+		m_builder.SetInsertPoint(checkBB);
+		auto isGood = m_builder.CreateICmpSGE(r, m_builder.getInt64(0), "r.isGood");;
+		m_builder.CreateCondBr(isGood, goodBB, badBB);
+
+		m_builder.SetInsertPoint(goodBB);
+		m_builder.CreateRetVoid();
+
+		m_builder.SetInsertPoint(badBB);
+		m_runtimeManager.abort(jmpBuf);
+		m_builder.CreateUnreachable();
 	}
 }
 
 void GasMeter::addInterruptionCheck() {
-    auto interruptedPtr = m_runtimeManager.getInterruptedPtr();
-    m_builder.CreateCall(m_interruptionCheckFunc, {interruptedPtr, m_runtimeManager.getJmpBuf()});
+	auto interruptedPtr = m_runtimeManager.getInterruptedPtr();
+	m_builder.CreateCall(m_interruptionCheckFunc, {interruptedPtr, m_runtimeManager.getJmpBuf()});
+}
+
+void GasMeter::addCallbackReturnCheck(llvm::Value* r) {
+	m_builder.CreateCall(m_callbackReturnCheckFunc, {r, m_runtimeManager.getJmpBuf()});
 }
 
 void GasMeter::count(Instruction _inst)

@@ -51,6 +51,9 @@ public:
 	/// Generate code for interruption check
 	void addInterruptionCheck();
 
+	/// Generate code for callback return check
+	void addCallbackReturnCheck(llvm::Value* r);
+
 private:
 	int64_t getStepCost(Instruction inst) const;
 
@@ -62,6 +65,7 @@ private:
 	llvm::Function* m_gasCheckFunc = nullptr;
 
     llvm::Function* m_interruptionCheckFunc = nullptr;
+    llvm::Function* m_callbackReturnCheckFunc = nullptr;
 
 	RuntimeManager& m_runtimeManager;
 
