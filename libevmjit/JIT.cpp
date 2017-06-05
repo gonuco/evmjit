@@ -123,7 +123,7 @@ protected:
 
 		for (auto it = removed.begin(); it != removed.end(); it++) {
 			llvm::Function *func = engine.FindFunctionNamed((*it).key.c_str());
-			func->eraseFromParent();
+			engine.removeModule(func->getParent());
 		}
 
 		return removed;
@@ -137,6 +137,7 @@ class JITImpl: public evm_instance
 {
 	std::unique_ptr<llvm::ExecutionEngine> m_engine;
 	std::unique_ptr<CodeMapCache> m_codeMap;
+	std::mutex x_compile;
 
 	static llvm::LLVMContext& getLLVMContext()
 	{
@@ -245,6 +246,7 @@ void JITImpl::mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr
 ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	std::string const& _codeIdentifier)
 {
+	std::lock_guard<std::mutex> lock{x_compile};
 	auto module = Cache::getObject(_codeIdentifier, getLLVMContext());
 	if (!module)
 	{
@@ -428,9 +430,12 @@ static void prepare_code(evm_instance* instance, evm_mode mode,
 {
 	auto& jit = *reinterpret_cast<JITImpl*>(instance);
 	auto codeIdentifier = makeCodeId(code_hash, mode);
-	auto execFunc = jit.compile(mode, code, code_size, codeIdentifier);
-	if (execFunc) // FIXME: What with error?
-		jit.mapExecFunc(codeIdentifier, execFunc);
+
+	if (jit.getExecFunc(codeIdentifier) == nullptr) {
+		auto execFunc = jit.compile(mode, code, code_size, codeIdentifier);
+		if (execFunc) // FIXME: What with error?
+			jit.mapExecFunc(codeIdentifier, execFunc);
+	}
 }
 
 EXPORT evm_factory evmjit_get_factory()
