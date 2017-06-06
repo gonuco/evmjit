@@ -271,7 +271,11 @@ ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	//listener->stateChanged(ExecState::CodeGen);
 
 	// The following call involves code generation and is very time consuming
-	return (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
+	auto execFunc = (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
+
+	// add execute function to cache
+	mapExecFunc(_codeIdentifier, execFunc);
+	return execFunc;
 }
 
 } // anonymous namespace
@@ -367,7 +371,6 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 
 		if (!execFunc)
 			return result;
-		jit.mapExecFunc(codeIdentifier, execFunc);
 	}
 
 	auto returnCode = execFunc(&ctx);
@@ -432,9 +435,7 @@ static void prepare_code(evm_instance* instance, evm_mode mode,
 	auto codeIdentifier = makeCodeId(code_hash, mode);
 
 	if (jit.getExecFunc(codeIdentifier) == nullptr) {
-		auto execFunc = jit.compile(mode, code, code_size, codeIdentifier);
-		if (execFunc) // FIXME: What with error?
-			jit.mapExecFunc(codeIdentifier, execFunc);
+		jit.compile(mode, code, code_size, codeIdentifier);
 	}
 }
 
