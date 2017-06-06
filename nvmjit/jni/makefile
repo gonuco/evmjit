@@ -12,7 +12,7 @@ CFLAGS=-std=c++0x -I. -I../../include -I${JDK_9_INCLUDE} -I${JDK_9_INCLUDE}/linu
 LFLAGS=-L${BLAKE2B_LIB} -L${LLVM_LIB} -l:blake2b.so -lLLVM-3.9 -Wl,--no-undefined -shared
 
 BUILD_DIR=build
-VERSION=0.0.2
+VERSION=0.0.3
 
 all: libnvmjit.so
 
@@ -50,8 +50,7 @@ clean:
 	rm -rf ${BUILD_DIR}
 	
 dist: libnvmjit.so
-	cp ${BLAKE2B_LIB}/blake2b.so ${BUILD_DIR}
 	cp ${LLVM_LIB}/libLLVM-3.9.so.1 ${BUILD_DIR}
 	cp file.list ${BUILD_DIR}
-	cd ${BUILD_DIR} && tar -czf nvmjit_all_${VERSION}.tar.gz file.list blake2b.so libLLVM-3.9.so.1 libnvmjit.so
+	cd ${BUILD_DIR} && tar -czf nvmjit_all_${VERSION}.tar.gz file.list libLLVM-3.9.so.1 libnvmjit.so
 
