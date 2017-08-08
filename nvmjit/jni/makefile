@@ -12,7 +12,7 @@ CFLAGS=-std=c++0x -I. -I../../include -I${JDK_9_INCLUDE} -I${JDK_9_INCLUDE}/linu
 LFLAGS=-L${BLAKE2B_LIB} -L${LLVM_LIB} -l:blake2b.so -lLLVM-3.9 -Wl,--no-undefined -shared
 
 BUILD_DIR=build
-VERSION=0.0.3
+VERSION=0.0.4
 
 all: libnvmjit.so
 
