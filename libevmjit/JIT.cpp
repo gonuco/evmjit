@@ -24,8 +24,6 @@
 
 #include "NvmJIT.h"
 
-#include "LRUCache11.hpp"
-
 static_assert(sizeof(evm_uint256be) == 32, "evm_uint256be is too big");
 static_assert(sizeof(evm_uint160be) == 20, "evm_uint160be is too big");
 static_assert(sizeof(evm_result) <= 64, "evm_result does not fit cache line");
@@ -109,34 +107,11 @@ void parseOptions()
 	cl::ParseEnvironmentOptions("evmjit", "EVMJIT", "Ethereum EVM JIT Compiler");
 }
 
-class CodeMapCache : public lru11::Cache<std::string, ExecFunc>
-{
-public:
-	CodeMapCache(llvm::ExecutionEngine &_engine):
-		lru11::Cache<std::string, ExecFunc>(1024, 0),
-		engine(_engine) {}
-
-protected:
-	list_type prune() override
-	{
-		list_type removed = lru11::Cache<std::string, ExecFunc>::prune();
-
-		for (auto it = removed.begin(); it != removed.end(); it++) {
-			llvm::Function *func = engine.FindFunctionNamed((*it).key.c_str());
-			engine.removeModule(func->getParent());
-		}
-
-		return removed;
-	}
-
-private:
-	llvm::ExecutionEngine &engine;
-};
-
 class JITImpl: public evm_instance
 {
 	std::unique_ptr<llvm::ExecutionEngine> m_engine;
-	std::unique_ptr<CodeMapCache> m_codeMap;
+	mutable std::mutex x_codeMap;
+	std::unordered_map<std::string, ExecFunc> m_codeMap;
 	std::mutex x_compile;
 
 	static llvm::LLVMContext& getLLVMContext()
@@ -158,9 +133,11 @@ public:
 
 	JITImpl();
 
+	void resetEngine();
+
 	llvm::ExecutionEngine& engine() { return *m_engine; }
 
-	ExecFunc getExecFunc(std::string const& _codeIdentifier);
+	ExecFunc getExecFunc (std::string const& _codeIdentifier) const;
 	void mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr);
 
 	ExecFunc compile(evm_mode _mode, byte const* _code, uint64_t _codeSize, std::string const& _codeIdentifier);
@@ -225,27 +202,63 @@ class SymbolResolver : public llvm::SectionMemoryManager
 	size_t m_printMemoryLimit = 1024 * 1024;
 };
 
+void JITImpl::resetEngine() {
+    std::lock_guard<std::mutex> lock{x_codeMap};
+    m_codeMap.clear();
 
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
 
+    auto module = llvm::make_unique<llvm::Module>("", getLLVMContext());
 
-ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier)
+    // FIXME: LLVM 3.7: test on Windows
+    auto triple = llvm::Triple(llvm::sys::getProcessTriple());
+    if (triple.getOS() == llvm::Triple::OSType::Win32)
+        triple.setObjectFormat(llvm::Triple::ObjectFormatType::ELF);  // MCJIT does not support COFF format
+    module->setTargetTriple(triple.str());
+
+    llvm::EngineBuilder builder(std::move(module));
+    builder.setEngineKind(llvm::EngineKind::JIT);
+    builder.setMCJITMemoryManager(llvm::make_unique<SymbolResolver>());
+    builder.setOptLevel(g_optimize ? llvm::CodeGenOpt::Default : llvm::CodeGenOpt::None);
+#ifndef NDEBUG
+    builder.setVerifyModules(true);
+#endif
+
+    m_engine.reset(builder.create());
+
+    // TODO: Update cache listener
+    m_engine->setObjectCache(Cache::init(g_cache, nullptr));
+
+    // FIXME: Disabled during API changes
+    //if (preloadCache)
+    //  Cache::preload(*m_engine, funcCache);
+}
+
+ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier) const
 {
-	ExecFunc result;
-	if (m_codeMap->tryGet(_codeIdentifier, result)) {
-		return result;
-	} else {
-		return nullptr;
-	}
+    std::lock_guard<std::mutex> lock{x_codeMap};
+    auto it = m_codeMap.find(_codeIdentifier);
+    if (it != m_codeMap.end())
+        return it->second;
+    return nullptr;
 }
 
 void JITImpl::mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr)
 {
-	m_codeMap->insert(_codeIdentifier, _funcAddr);
+    std::lock_guard<std::mutex> lock{x_codeMap};
+    m_codeMap.emplace(_codeIdentifier, _funcAddr);
 }
 
 ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	std::string const& _codeIdentifier)
 {
+    // reset engine.
+    static std::atomic<long> cnt(0);
+    if (++cnt % 10000L == 0) {
+        resetEngine();
+    }
+
 	std::lock_guard<std::mutex> lock{x_compile};
 	auto module = Cache::getObject(_codeIdentifier, getLLVMContext());
 	if (!module)
@@ -267,15 +280,15 @@ ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	if (g_dump)
 		module->dump();
 
+	llvm::Module *m = module.get();
+
 	m_engine->addModule(std::move(module));
-	//listener->stateChanged(ExecState::CodeGen);
+    //listener->stateChanged(ExecState::CodeGen);
+    ExecFunc func = (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
+    m_engine->removeModule(m);
 
-	// The following call involves code generation and is very time consuming
-	auto execFunc = (ExecFunc)m_engine->getFunctionAddress(_codeIdentifier);
-
-	// add execute function to cache
-	mapExecFunc(_codeIdentifier, execFunc);
-	return execFunc;
+    delete m;
+    return func;
 }
 
 } // anonymous namespace
@@ -371,6 +384,7 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 
 		if (!execFunc)
 			return result;
+		jit.mapExecFunc(codeIdentifier, execFunc);
 	}
 
 	auto returnCode = execFunc(&ctx);
@@ -435,7 +449,9 @@ static void prepare_code(evm_instance* instance, evm_mode mode,
 	auto codeIdentifier = makeCodeId(code_hash, mode);
 
 	if (jit.getExecFunc(codeIdentifier) == nullptr) {
-		jit.compile(mode, code, code_size, codeIdentifier);
+	    auto execFunc = jit.compile(mode, code, code_size, codeIdentifier);
+	    if (execFunc) // FIXME: What with error?
+	        jit.mapExecFunc(codeIdentifier, execFunc);
 	}
 }
 
@@ -455,38 +471,13 @@ JITImpl::JITImpl():
 {
 	parseOptions();
 
-	bool preloadCache = g_cache == CacheMode::preload;
-	if (preloadCache)
-		g_cache = CacheMode::on;
+	parseOptions();
 
-	llvm::InitializeNativeTarget();
-	llvm::InitializeNativeTargetAsmPrinter();
+    bool preloadCache = g_cache == CacheMode::preload;
+    if (preloadCache)
+        g_cache = CacheMode::on;
 
-	auto module = llvm::make_unique<llvm::Module>("", getLLVMContext());
-
-	// FIXME: LLVM 3.7: test on Windows
-	auto triple = llvm::Triple(llvm::sys::getProcessTriple());
-	if (triple.getOS() == llvm::Triple::OSType::Win32)
-		triple.setObjectFormat(llvm::Triple::ObjectFormatType::ELF);  // MCJIT does not support COFF format
-	module->setTargetTriple(triple.str());
-
-	llvm::EngineBuilder builder(std::move(module));
-	builder.setEngineKind(llvm::EngineKind::JIT);
-	builder.setMCJITMemoryManager(llvm::make_unique<SymbolResolver>());
-	builder.setOptLevel(g_optimize ? llvm::CodeGenOpt::Default : llvm::CodeGenOpt::None);
-#ifndef NDEBUG
-	builder.setVerifyModules(true);
-#endif
-
-	m_engine.reset(builder.create());
-	m_codeMap.reset(new CodeMapCache(engine()));
-
-	// TODO: Update cache listener
-	m_engine->setObjectCache(Cache::init(g_cache, nullptr));
-
-	// FIXME: Disabled during API changes
-	//if (preloadCache)
-	//	Cache::preload(*m_engine, funcCache);
+    resetEngine();
 }
 
 }
