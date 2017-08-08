@@ -112,7 +112,6 @@ class JITImpl: public evm_instance
 	std::unique_ptr<llvm::ExecutionEngine> m_engine;
 	mutable std::mutex x_codeMap;
 	std::unordered_map<std::string, ExecFunc> m_codeMap;
-	std::mutex x_compile;
 
 	static llvm::LLVMContext& getLLVMContext()
 	{
@@ -137,6 +136,7 @@ public:
 
 	llvm::ExecutionEngine& engine() { return *m_engine; }
 
+    size_t codeMapSize() const;
 	ExecFunc getExecFunc (std::string const& _codeIdentifier) const;
 	void mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr);
 
@@ -206,9 +206,6 @@ void JITImpl::resetEngine() {
     std::lock_guard<std::mutex> lock{x_codeMap};
     m_codeMap.clear();
 
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-
     auto module = llvm::make_unique<llvm::Module>("", getLLVMContext());
 
     // FIXME: LLVM 3.7: test on Windows
@@ -235,6 +232,12 @@ void JITImpl::resetEngine() {
     //  Cache::preload(*m_engine, funcCache);
 }
 
+size_t JITImpl::codeMapSize() const
+{
+    std::lock_guard<std::mutex> lock{x_codeMap};
+    return m_codeMap.size();
+}
+
 ExecFunc JITImpl::getExecFunc(std::string const& _codeIdentifier) const
 {
     std::lock_guard<std::mutex> lock{x_codeMap};
@@ -253,13 +256,6 @@ void JITImpl::mapExecFunc(std::string const& _codeIdentifier, ExecFunc _funcAddr
 ExecFunc JITImpl::compile(evm_mode _mode, byte const* _code, uint64_t _codeSize,
 	std::string const& _codeIdentifier)
 {
-    // reset engine.
-    static std::atomic<long> cnt(0);
-    if (++cnt % 10000L == 0) {
-        resetEngine();
-    }
-
-	std::lock_guard<std::mutex> lock{x_compile};
 	auto module = Cache::getObject(_codeIdentifier, getLLVMContext());
 	if (!module)
 	{
@@ -350,6 +346,12 @@ static evm_result execute(evm_instance* instance, evm_env* env, evm_mode mode,
 	int64_t gas, uint8_t const* input, size_t input_size, evm_uint256be value)
 {
 	auto& jit = *reinterpret_cast<JITImpl*>(instance);
+
+	// we can only reset engine when this current instance is the
+	// root instance in the VM instance stack.
+    if (env->instances.size() == 1 && jit.codeMapSize() > 20000L) {
+        jit.resetEngine();
+    }
 
 	RuntimeData rt;
 	rt.code = code;
@@ -471,7 +473,8 @@ JITImpl::JITImpl():
 {
 	parseOptions();
 
-	parseOptions();
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
 
     bool preloadCache = g_cache == CacheMode::preload;
     if (preloadCache)
